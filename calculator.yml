@@ -1,0 +1,93 @@
+stages:
+  - build
+  - clang_style
+  - test
+  # - deploy
+
+Build:
+  stage: build
+  tags:
+    - cicd
+  before_script:
+    - echo "CБОРКА ПРОЕКТОВ"  
+  script:
+    - cd src
+    - make
+  # when: on_success
+  when: always
+  # when: on_failure 
+  # artifacts:
+  #   paths:
+  #     - src/cat/s21_cat
+  #     - src/grep/s21_grep
+  #   expire_in: 30 days
+  
+  # after_script:
+  #   - sh src/notify.sh Build
+
+Style:
+  stage: clang_style
+  tags:
+    - cicd
+  before_script:
+    - echo "ПРОВЕРКА НА СТИЛЬ clang-format"   
+  script:
+    -  clang-format  -n *.c *.h -Werror
+  after_script:
+    -  >
+      if [ $CI_JOB_STATUS == 'success' ]; then
+         echo 'STYLE CHECKED - SUCCESSFUL'
+       else
+         echo 'STYLE CHECKED - FAILED'
+      fi
+    - sh src/notify.sh Style   
+  # when: on_success
+    when: always
+
+#   # allow_failure: true
+#   #   - false || exit_code=$?
+#   #   - if [ $exit_code -ne 0 ]; then echo "Previous command failed"; fi;
+
+Test:
+  stage: test
+  tags:
+    - cicd
+  # needs: ["Build", "Style"]
+    needs: ["Build"]
+    before_script:
+    - echo "ТЕСТИРОВАНИЕ"   
+  script:
+    - cd src
+    - ./test.sh
+    # - rm /home/gitlab-runner/.bash_logout
+  after_script:
+    -  >
+      if [ $CI_JOB_STATUS == 'success' ]; then
+         echo 'TESTING - SUCCESSFUL'
+       else
+         echo 'TESTING - FAILED'
+      fi
+    - sh src/notify.sh Test  
+  # when: on_success
+  when: always
+
+# Deploy:
+#   stage: deploy
+#   tags:
+#     - cicd
+#   needs: ["Build", "Style", "Test"]
+#   before_script:
+#     - echo "РАЗВЕРТЫВАНИЕ"   
+#   script:
+#     - ./src/deploy.sh
+#   when: manual  
+#   # when: on_success
+#   after_script:
+#     -  >
+#       if [ $CI_JOB_STATUS == 'success' ]; then
+#          echo 'DEPLOY - SUCCESSFUL'
+#        else
+#          echo 'DEPLOY - FAILED'
+#       fi
+#     - sh src/notify.sh Deploy  
+  
